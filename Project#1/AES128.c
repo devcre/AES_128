@@ -13,18 +13,43 @@
  *  ======================================================================== */
 
 #include <stdio.h>
-#include <stdlib.h>state
-#include "AES128.h"state
+#include <stdlib.h>
+#include "AES128.h"
 
-#define KEY_SIZE 16state
-#define ROUNDKEY_SIstate
-#define BLOCK_SIZE state
+#define KEY_SIZE 16
+#define ROUNDKEY_SI
+#define BLOCK_SIZE
 
-/* 기타 필요한 전역state
+/* 기타 필요한 전역
 
-/* 기타 필요한 함수state
+/* 기타 필요한 함수 */
 
-/*  <키스케줄링 함state
+BYTE dtime(BYTE hexa){ // hexa * 2
+    unsigned char x;
+    unsigned int compare;
+    x = hexa * 2;
+    compare = hexa * 2;
+
+    if (x == compare){
+        return x;
+    }
+    else{
+        return (hexa << 1)^0x1b;
+    }
+}
+
+BYTE ttime(BYTE hexa){ // hexa * 3
+    return dtime(hexa)^hexa;
+}
+
+void swap_ins(BYTE *block, int s1, int s2){
+    int tmp;
+    tmp = block[s1];
+    block[s1] = block[s2];
+    block[s2] = tmp;
+}
+
+/*  <키스케줄링 함
  *   
  *  key         키state
  *  roundKey    키state공간
@@ -169,24 +194,6 @@ BYTE* mixColumns(BYTE *block, int mode){
     return block;
 }
 
-BYTE dtime(BYTE hexa){ // hexa * 2
-    unsigned char x;
-    unsigned int compare;
-    x = hexa * 2;
-    compare = hexa * 2;
-
-    if (x == compare){
-        return x;
-    }
-    else{
-        return (hexa << 1)^0x1b;
-    }
-}
-
-BYTE ttime(BYTE hexa){ // hexa * 3
-    return dtime(hexa)^hexa;
-}
-
 /*  <AddRoundKey 함수>
  *   
  *  block   AddRoundKey를 수행할 16바이트 블록. 수행 결과는 해당 배열에 반영
@@ -222,51 +229,81 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
         int s_arr;
         int ir, count;
         int *ptr;
-        unsigned char tmp[16];
+        BYTE state[16];
 
         ptr = input;
         count = 0;
-        s_arr = sizeof(input)/sizeof(input[0]);
+        s_arr = sizeof(input)/sizeof(input[0]);\
         
+        /* 추가 작업이 필요하다 생각하면 추가 구현 */
+
+        // state = in
         while(s_arr > 0){ // if 'input' array has instance
             for(ir=0;ir<16;ir++){
-                tmp[ir] = *ptr;
+                state[ir] = *ptr;
                 ptr += sizeof(BYTE);
                 s_arr -= 1;
             }
-            // encypting //
-            addRoundKey(tmp,key);
-            for(int i=0; i<9; i++){
-                subBytes(tmp,ENC);
-                shiftRows(tmp,ENC);
-                mixColumns(tmp,ENC);
-                addRoundKey(tmp,key);
+            // encrypting //
+            addRoundKey(state,key);
+            for(int nr=0; nr<9; nr++){
+                subBytes(state,ENC);
+                shiftRows(state,ENC);
+                mixColumns(state,ENC);
+                addRoundKey(state,key);
             }
-            subBytes(tmp,ENC);
-            shiftRows(tmp,ENC);
-            addRoundKey(tmp,key);
+            subBytes(state,ENC);
+            shiftRows(state,ENC);
+            addRoundKey(state,key);
 
+            // out = state;
             for(ir=0;ir<16;ir++){
-                result[ir+16*count] = tmp[ir];
+                result[ir+16*count] = state[ir];
             }
             count += 1;
         }
 
+    }else if(mode == DEC){
+        int s_arry;
+        int irr, count2;
+        int *ptr2;
+        BYTE state[16];
+
+        ptr2 = input;
+        count2 = 0;
+        s_arry = sizeof(input)/sizeof(input[0]);
+
         /* 추가 작업이 필요하다 생각하면 추가 구현 */
 
-    }else if(mode == DEC){
+        // state = in
+        while(s_arry > 0){
+            for(irr=0;irr<16;irr++){
+                state[irr] = *ptr2;
+                ptr2 += sizeof(BYTE);
+                s_arry -= 1;
+            }
+            // decrypting
+            addRoundKey(state, key);
 
-        /* 추가 작업이 필요하다 생각하면 추가 구현 */    
+            for(int nr=0;nr<9;nr++){
+                shiftRows(state,DEC);
+                subBytes(state,DEC);
+                addRoundKey(state,key);
+                mixColumns(state,DEC);
+            }
+            shiftRows(state,DEC);
+            subBytes(state,DEC);
+            addRoundKey(state,key);
+
+            // out = state
+            for(irr=0;irr<16;irr++){
+                result[irr+16*count2] = state[irr];
+            }
+            count2 += 1;
+        }
 
     }else{
         fprintf(stderr, "Invalid mode!\n");
         exit(1);
     }
-}
-
-void swap_ins(BYTE *block, int s1, int s2){
-    int tmp;
-    tmp = block[s1];
-    block[s1] = block[s2];
-    block[s2] = tmp;
 }
