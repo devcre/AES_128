@@ -78,38 +78,12 @@ int main(){
 
     // original answer : 0x57 * 2 = 0xAE
     // original answer : 0xbf * 3 = 0xda
-    unsigned char y, c, a1, a2;
-    unsigned int kk;
-    y = 0;
-    c = 0;
-    y = 0x57 * 2;
-    c = ((0xbf << 1) ^ 0x1b) ^ 0xbf;
-    printf("y : %X\n", y);
-    printf("c : %X\n", c);
 
-    a1 = 0x57 * 2;
-    kk = a1;
-    a2 = ((0x57 << 1) ^ 0x1b);
-    printf("%X, %X\n%X\n", a1, a2, kk);
+    int *ptr;
+    int *blk;
+    int array[10] = {0,1,2,3,4,5,6,7,8,9};
 
-    printf("result[0][0]: %X\n", 0x87 * 2+ 0x6e * 3 + 0x46 + 0xA6);
+    ptr = array;
     
-    unsigned long int x;
-    printf("0x87 * 2 = %X\n", (0x87<<1)^0x1b); // 0x1b = m(x) = 00011011
-
-    for(int a=0;a<4;a++){
-        for(int b=0;b<4;b++){
-            x = 0;
-            for(int k=0;k<4;k++){
-                x = x + mix_col[a][k] * block[k][b];
-            }
-            result[a][b] = x;
-            printf("%X ", x);
-        }
-        printf("\n");
-    }
-
-    printf("original answer : 04\nand calculated answer : %X\n",dtime(0xd4)^ttime(0xbf)^0x5d^0x30);
-
     return 0;
 }
