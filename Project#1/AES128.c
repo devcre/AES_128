@@ -112,7 +112,7 @@ void subWord(BYTE *output){
 void g_function(BYTE* input, BYTE* output, int rnd){
     rotWord(input, output); // x (rotWord)
     subWord(output); // y (subWord)
-    *(output+0) ^= Rcon[rnd]; // z (y (xor) Rcon)
+    *(output+0) ^= Rcon[rnd-1]; // z (y (xor) Rcon)
 }
 
 /*  <키스케줄링 함
@@ -166,18 +166,18 @@ void expandKey(BYTE *key, BYTE *roundKey){
 
         case ENC:
             /* 추가 구현 */
-            for(countt=0; countt<16; countt++){
-                t_digit = block[countt] / 16;
-                o_digit = block[countt] % 16;
+            for(countt=0; countt<BLOCK_SIZE; countt++){
+                t_digit = block[countt] / BLOCK_SIZE;
+                o_digit = block[countt] % BLOCK_SIZE;
                 block[countt] = s_box[t_digit][o_digit];
             }
             break;
 
         case DEC:
             /* 추가 구현 */
-            for(countt=0; countt<16; countt++){
-                t_digit = block[countt] / 16;
-                o_digit = block[countt] % 16;
+            for(countt=0; countt<BLOCK_SIZE; countt++){
+                t_digit = block[countt] / BLOCK_SIZE;
+                o_digit = block[countt] % BLOCK_SIZE;
                 block[countt] = invs_box[t_digit][o_digit];
             }
             break;
@@ -299,7 +299,7 @@ BYTE* mixColumns(BYTE *block, int mode){
 BYTE* addRoundKey(BYTE *block, BYTE *rKey){
     /* 추가 구현 */
     int cou;
-    for(cou=0;cou<16;cou++){
+    for(cou=0;cou<BLOCK_SIZE;cou++){
         *(block+cou) ^= *(rKey+cou);
     }
     return block;
@@ -324,12 +324,11 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
 
     if(mode == ENC){
 		int k;
-        int ir, count, kcount;
+        int ir, kcount;
         BYTE state[BLOCK_SIZE];
 		BYTE rkey[ROUNDKEY_SIZE]; // total round key
         BYTE srkey[KEY_SIZE]; // small round key
 
-        count = 0;
 		kcount = KEY_SIZE;
         
         /* 추가 작업이 필요하다 생각하면 추가 구현 */
@@ -351,14 +350,13 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
         addRoundKey(input,srkey);
 
         // out = state;
-        for(ir=0;ir<16;ir++){
-            result[ir+16*count] = input[ir];
+        for(ir=0;ir<BLOCK_SIZE;ir++){
+            result[ir] = input[ir];
         }
-        count += 1;
 
     }else if(mode == DEC){;
         int irr, count2;
-        BYTE state[16];
+        BYTE state[BLOCK_SIZE];
 
         count2 = 0;
 
@@ -377,9 +375,8 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
 
         // out = state
         for(irr=0;irr<16;irr++){
-            result[irr+16*count2] = state[irr];
+            result[irr] = state[irr];
         }
-        count2 += 1;
 
     }else{
         fprintf(stderr, "Invalid mode!\n");
