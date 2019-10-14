@@ -58,24 +58,6 @@ int invs_box[16][16] = {{0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0
                         {0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d}};
 /* 기타 필요한 함수 */
 
-BYTE dtime(BYTE hexa){ // hexa * 2
-    unsigned char x;
-    unsigned int compare;
-    x = hexa * 2;
-    compare = hexa * 2;
-
-    if (x == compare){
-        return x;
-    }
-    else{
-        return (hexa << 1)^0x1b;
-    }
-}
-
-BYTE ttime(BYTE hexa){ // hexa * 3
-    return dtime(hexa)^hexa;
-}
-
 void swap_ins(BYTE *block, int s1, int s2){
     int tmp;
     tmp = block[s1];
@@ -93,26 +75,6 @@ BYTE Multiply(int hexa1, int hexa2){
     ((hexa2>>2 & 1) * xtime(xtime(hexa1))) ^       
     ((hexa2>>3 & 1) * xtime(xtime(xtime(hexa1)))) ^
     ((hexa2>>4 & 1) * xtime(xtime(xtime(xtime(hexa1))))));
-}
-
-void rotWord(BYTE* w3, BYTE* output){
-    *output = *(w3+1);
-    *(output+1) = *(w3+2);
-    *(output+2) = *(w3+3);
-    *(output+3) = *(w3);
-}
-
-void subWord(BYTE *output){
-    int i;
-    for(i=0; i<4; i++){
-        *(output+i) = s_box[*(output+i)];
-    }
-}
-
-void g_function(BYTE* input, BYTE* output, int rnd){
-    rotWord(input, output); // x (rotWord)
-    subWord(output); // y (subWord)
-    *(output+0) ^= Rcon[rnd-1]; // z (y (xor) Rcon)
 }
 
 void g_func(BYTE *input, int Nr){
@@ -404,27 +366,38 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
         }
 
     }else if(mode == DEC){;
-        int irr, count2;
-        BYTE state[BLOCK_SIZE];
+        int irr;
+        int dcount, t;
+        BYTE rkey[ROUNDKEY_SIZE]; // total round key
+        BYTE srkey[KEY_SIZE]; // small round key
 
-        count2 = 0;
+        dcount = 1;
 
         /* 추가 작업이 필요하다 생각하면 추가 구현 */
-        // decrypting
-        addRoundKey(state, key);
-        for(int nr=1;nr<9;nr++){
-            shiftRows(state,DEC);
-            subBytes(state,DEC);
-            addRoundKey(state,key);
-            mixColumns(state,DEC);
+        for(t=0;t<KEY_SIZE;t++){
+            srkey[t] = rkey[ROUNDKEY_SIZE-16*dcount+t];
         }
-        shiftRows(state,DEC);
-        subBytes(state,DEC);
-        addRoundKey(state,key);
+        dcount += 1;
+        expandKey(key,srkey);
+        // decrypting
+        addRoundKey(input,srkey);
+        for(int nr=0;nr<9;nr++){
+            shiftRows(input,DEC);
+            subBytes(input,DEC);
+            for(t=0;t<KEY_SIZE;t++){
+                srkey[t] = rkey[ROUNDKEY_SIZE-16*dcount+t];
+            }
+            dcount += 1;
+            addRoundKey(input,srkey);
+            mixColumns(input,DEC);
+        }
+        shiftRows(input,DEC);
+        subBytes(input,DEC);
+        addRoundKey(input,key);
 
         // out = state
         for(irr=0;irr<16;irr++){
-            result[irr] = state[irr];
+            result[irr] = input[irr];
         }
 
     }else{
