@@ -323,7 +323,7 @@ BYTE* addRoundKey(BYTE *block, BYTE *rKey){
 void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
 
     if(mode == ENC){
-		int k;
+		int k, t;
         int ir, kcount;
         BYTE state[BLOCK_SIZE];
 		BYTE rkey[ROUNDKEY_SIZE]; // total round key
@@ -340,13 +340,17 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
             subBytes(input,ENC);
             shiftRows(input,ENC);
             mixColumns(input,ENC);
-			*srkey = *(rkey+kcount);
+			for(t=0;t<KEY_SIZE;t++){
+                srkey[t] = rkey[t+kcount];
+            }
 			kcount += KEY_SIZE;
             addRoundKey(input,srkey);
         }
         subBytes(input,ENC);
         shiftRows(input,ENC);
-		*srkey = *(rkey+kcount);
+		for(t=0;t<KEY_SIZE;t++){
+            srkey[t] = rkey[t+kcount];
+        }
         addRoundKey(input,srkey);
 
         // out = state;
