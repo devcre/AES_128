@@ -144,7 +144,7 @@ int counts = 1;
  */
 void expandKey(BYTE *key, BYTE *roundKey){
     /* 추가 구현 */
-    int a, b, rd, ko;
+    int a, b, c, rd, ko;
     BYTE tforEx[4]; //temp array for expandkey, g_function
 
     // 0 rouond key
@@ -166,10 +166,14 @@ void expandKey(BYTE *key, BYTE *roundKey){
                 tforEx[2] = roundKey[16*rd-2];
                 tforEx[3] = roundKey[16*rd-1];
                 g_func(tforEx, rd);
-                roundKey[KEY_SIZE*rd+0] = roundKey[KEY_SIZE*(rd-1)+0]^tforEx[0];
-                roundKey[KEY_SIZE*rd+1] = roundKey[KEY_SIZE*(rd-1)+1]^tforEx[1];
-                roundKey[KEY_SIZE*rd+2] = roundKey[KEY_SIZE*(rd-1)+2]^tforEx[2];
-                roundKey[KEY_SIZE*rd+3] = roundKey[KEY_SIZE*(rd-1)+3]^tforEx[3];
+                // confirmed
+                for(c=0;c<4;c++){
+                    roundKey[KEY_SIZE*rd+c] = roundKey[KEY_SIZE*(rd-1)+c]^tforEx[c];
+                }
+                // roundKey[KEY_SIZE*rd+0] = roundKey[KEY_SIZE*(rd-1)+0]^tforEx[0];
+                // roundKey[KEY_SIZE*rd+1] = roundKey[KEY_SIZE*(rd-1)+1]^tforEx[1];
+                // roundKey[KEY_SIZE*rd+2] = roundKey[KEY_SIZE*(rd-1)+2]^tforEx[2];
+                // roundKey[KEY_SIZE*rd+3] = roundKey[KEY_SIZE*(rd-1)+3]^tforEx[3];
             }
             // 
             else{
@@ -180,14 +184,14 @@ void expandKey(BYTE *key, BYTE *roundKey){
             }
         }
 //////////////////////////////////////////////////
-        printf("roundkey : %d\n", counts);
-        for(a=0;a<4;a++){
-            for(b=0;b<4;b++){
-                printf("%X ", roundKey[4*b+a+16*rd]);
-            }
-            printf("\n");
-        }
-        counts += 1;
+        // printf("roundkey : %d\n", counts);
+        // for(a=0;a<4;a++){
+        //     for(b=0;b<4;b++){
+        //         printf("%X ", roundKey[4*b+a+16*rd]);
+        //     }
+        //     printf("\n");
+        // }
+        // counts += 1;
         rd = rd + 1;
     }
 }
