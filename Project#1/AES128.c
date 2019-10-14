@@ -21,7 +21,7 @@
 #define BLOCK_SIZE 16
 
 /* 기타 필요한 전역 */
-BYTE Rcon[10] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36 };
+BYTE Rcon[10] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 
 int s_box[16][16] = {{0x63,0x7C,0x77,0x7B,0xF2,0x6B,0x6F,0xC5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76},
                      {0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0},
@@ -95,48 +95,24 @@ BYTE Multiply(int hexa1, int hexa2){
     ((hexa2>>4 & 1) * xtime(xtime(xtime(xtime(hexa1))))));
 }
 
-void rotWord(BYTE* w3, BYTE* output)
-{
-
+void rotWord(BYTE* w3, BYTE* output){
     *output = *(w3+1);
-
     *(output+1) = *(w3+2);
-
     *(output+2) = *(w3+3);
-
     *(output+3) = *(w3);
-
 }
 
- 
-
-void subWord(BYTE *output)
-{
-
+void subWord(BYTE *output){
     int i;
-
-    for(i=0; i<4; i++)
-
-    {
-
+    for(i=0; i<4; i++){
         *(output+i) = s_box[*(output+i)];
-
     }
-
 }
 
- 
-
-void g_function(BYTE* input, BYTE* output, int rnd)
-
-{
-
+void g_function(BYTE* input, BYTE* output, int rnd){
     rotWord(input, output); // x (rotWord)
-
     subWord(output); // y (subWord)
-
     *(output+0) ^= Rcon[rnd]; // z (y (xor) Rcon)
-
 }
 
 /*  <키스케줄링 함
@@ -146,55 +122,33 @@ void g_function(BYTE* input, BYTE* output, int rnd)
  */
 void expandKey(BYTE *key, BYTE *roundKey){
     /* 추가 구현 */
-	int i, j, k;
-    int t;
-    unsigned int s_digit, f_digit;
-    BYTE temp[4];
+	int i;
 
-	for(t=0;t<KEY_SIZE;t++){
-		*(roundKey+t) = *(key+t);
-	}
-
-	for(i=4;i<44;i++){
-		k = (i-1)*4;
-		temp[0] = roundKey[k+0];
-		temp[1] = roundKey[k+1];
-		temp[2] = roundKey[k+2];
-		temp[3] = roundKey[k+3];
-		printf("%d\n",i);
-
-		if(i%4 == 0){
-			// move instance left
-			swap_ins(temp,temp[0], temp[1]);
-		    swap_ins(temp,temp[1], temp[2]);
-		    swap_ins(temp,temp[2], temp[3]);
-
-			// s_box
-            for(t=0; t<4; t++){
-                s_digit = temp[t] / 16;
-                f_digit = temp[t] % 16;
-                temp[t] = s_box[s_digit][f_digit];
-            }
-
-			// RCon
-            temp[0] ^= Rcon[i/4];
-		}
-		j = i*4;
-		k = (i-4)*4;
-		*(roundKey+j) = roundKey[k+0]^temp[0];
-		*(roundKey+j+1) = roundKey[k+1]^temp[1];
-		*(roundKey+j+2) = roundKey[k+2]^temp[2];
-		*(roundKey+j+3) = roundKey[k+3]^temp[3];
-
-        printf("roundkey : %X\n", roundKey[j]);
-        printf("roundkey : %X\n", roundKey[j+1]);
-        printf("roundkey : %X\n", roundKey[j+2]);
-        printf("roundkey : %X\n", roundKey[j+3]);
+    for (i=0; i<KEY_SIZE; i++){
+        *(roundKey+i) = *(key+i);
     }
-	printf("WHY???????????????\n");
+    // 1~10 round key expansion
+
+    int rnd;
+    for(rnd=1; rnd<ROUNDKEY_SIZE/KEY_SIZE; rnd++){
+        int w0 = rnd * KEY_SIZE;
+        int w1 = w0 + 4;
+        int w2 = w1 + 4;
+        int w3 = w2 + 4;
+
+        BYTE* gfunc_output = (BYTE*) malloc(sizeof(BYTE)*4);
+        g_function((roundKey+w3-KEY_SIZE), gfunc_output, rnd);
+
+        // Next round w
+        for (i=0; i<KEY_SIZE/4; i++){
+            *(roundKey+w0+i) = *(roundKey+w0-KEY_SIZE+i) ^ *(gfunc_output+i);
+            *(roundKey+w1+i) = *(roundKey+w1-KEY_SIZE+i) ^ *(roundKey+w0+i);
+            *(roundKey+w2+i) = *(roundKey+w2-KEY_SIZE+i) ^ *(roundKey+w1+i);
+            *(roundKey+w3+i) = *(roundKey+w3-KEY_SIZE+i) ^ *(roundKey+w2+i);
+        }
+        free(gfunc_output);
+    }
 }
-
-
 
 /*  <SubBytes 함수>
  *   
@@ -346,7 +300,7 @@ BYTE* addRoundKey(BYTE *block, BYTE *rKey){
     /* 추가 구현 */
     int cou;
     for(cou=0;cou<16;cou++){
-        block[cou] ^= rKey[cou];
+        *(block+cou) ^= *(rKey+cou);
     }
     return block;
 }
@@ -369,7 +323,7 @@ BYTE* addRoundKey(BYTE *block, BYTE *rKey){
 void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
 
     if(mode == ENC){
-		int k; 
+		int k;
         int ir, count, kcount;
         BYTE state[BLOCK_SIZE];
 		BYTE rkey[ROUNDKEY_SIZE]; // total round key
@@ -381,29 +335,24 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
         /* 추가 작업이 필요하다 생각하면 추가 구현 */
         // encrypting //
         expandKey(key,rkey);
-		printf("---core dump problem complete---\n");
 
-        addRoundKey(state,key);
-        for(int nr=1; nr<9; nr++){
-            subBytes(state,ENC);
-            shiftRows(state,ENC);
-            mixColumns(state,ENC);
-			for(k=0;k<16;k++){
-				srkey[k] = rkey[kcount+k];
-			}
+        addRoundKey(input,key);
+        for(int nr=0; nr<9; nr++){
+            subBytes(input,ENC);
+            shiftRows(input,ENC);
+            mixColumns(input,ENC);
+			*srkey = *(rkey+kcount);
 			kcount += KEY_SIZE;
-            addRoundKey(state,srkey);
+            addRoundKey(input,srkey);
         }
-        subBytes(state,ENC);
-        shiftRows(state,ENC);
-		for(k=0;k<16;k++){
-			srkey[k] = rkey[kcount+k];
-		}
-        addRoundKey(state,srkey);
+        subBytes(input,ENC);
+        shiftRows(input,ENC);
+		*srkey = *(rkey+kcount);
+        addRoundKey(input,srkey);
 
         // out = state;
         for(ir=0;ir<16;ir++){
-            result[ir+16*count] = state[ir];
+            result[ir+16*count] = input[ir];
         }
         count += 1;
 
