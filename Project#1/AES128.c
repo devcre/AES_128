@@ -328,19 +328,18 @@ BYTE* addRoundKey(BYTE *block, BYTE *rKey){
  */
  
 void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
+    BYTE rkey[ROUNDKEY_SIZE]; // total round key
+    BYTE srkey[KEY_SIZE]; // small round key
+    expandKey(key,rkey);
 
     if(mode == ENC){
 		int k, t;
         int ir, kcount;
-        BYTE state[BLOCK_SIZE];
-		BYTE rkey[ROUNDKEY_SIZE]; // total round key
-        BYTE srkey[KEY_SIZE]; // small round key
 
 		kcount = KEY_SIZE;
         
         /* 추가 작업이 필요하다 생각하면 추가 구현 */
         // encrypting //
-        expandKey(key,rkey);
 
         addRoundKey(input,key);
         for(int nr=0; nr<9; nr++){
@@ -365,11 +364,10 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
             result[ir] = input[ir];
         }
 
-    }else if(mode == DEC){;
+    }
+    else if(mode == DEC){;
         int irr;
         int dcount, t;
-        BYTE rkey[ROUNDKEY_SIZE]; // total round key
-        BYTE srkey[KEY_SIZE]; // small round key
 
         dcount = 1;
 
@@ -378,7 +376,6 @@ void AES128(BYTE *input, BYTE *result, BYTE *key, int mode){
             srkey[t] = rkey[ROUNDKEY_SIZE-16*dcount+t];
         }
         dcount += 1;
-        expandKey(key,srkey);
         // decrypting
         addRoundKey(input,srkey);
         for(int nr=0;nr<9;nr++){
