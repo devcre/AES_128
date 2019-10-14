@@ -115,6 +115,28 @@ void g_function(BYTE* input, BYTE* output, int rnd){
     *(output+0) ^= Rcon[rnd-1]; // z (y (xor) Rcon)
 }
 
+void g_func(BYTE *input, int Nr){
+    int sub, a1, a2;
+    int g;
+
+    // shift (LRotWord)
+    swap_ins(input,0,1);
+    swap_ins(input,1,2);
+    swap_ins(input,2,3);
+
+    // subbyte (s_box)
+    for(sub=0;sub<4;sub++){
+        a1 = input[sub] / BLOCK_SIZE;
+        a2 = input[sub] % BLOCK_SIZE;
+        input[sub] = s_box[a1][a2];
+    }
+
+    // Rcon
+    input[0] ^= Rcon[Nr-1];
+}
+
+int counts = 1;
+
 /*  <키스케줄링 함
  *   
  *  key         키
@@ -122,31 +144,51 @@ void g_function(BYTE* input, BYTE* output, int rnd){
  */
 void expandKey(BYTE *key, BYTE *roundKey){
     /* 추가 구현 */
-	int i;
+    int a, b, rd, ko;
+    BYTE tforEx[4]; //temp array for expandkey, g_function
 
-    for (i=0; i<KEY_SIZE; i++){
-        *(roundKey+i) = *(key+i);
+    // 0 rouond key
+    for(a=0;a<4;a++){
+        roundKey[4*a] = key[4*a];
+        roundKey[4*a+1] = key[4*a+1];
+        roundKey[4*a+2] = key[4*a+2];
+        roundKey[4*a+3] = key[4*a+3];
     }
-    // 1~10 round key expansion
 
-    int rnd;
-    for(rnd=1; rnd<ROUNDKEY_SIZE/KEY_SIZE; rnd++){
-        int w0 = rnd * KEY_SIZE;
-        int w1 = w0 + 4;
-        int w2 = w1 + 4;
-        int w3 = w2 + 4;
-
-        BYTE* gfunc_output = (BYTE*) malloc(sizeof(BYTE)*4);
-        g_function((roundKey+w3-KEY_SIZE), gfunc_output, rnd);
-
-        // Next round w
-        for (i=0; i<KEY_SIZE/4; i++){
-            *(roundKey+w0+i) = *(roundKey+w0-KEY_SIZE+i) ^ *(gfunc_output+i);
-            *(roundKey+w1+i) = *(roundKey+w1-KEY_SIZE+i) ^ *(roundKey+w0+i);
-            *(roundKey+w2+i) = *(roundKey+w2-KEY_SIZE+i) ^ *(roundKey+w1+i);
-            *(roundKey+w3+i) = *(roundKey+w3-KEY_SIZE+i) ^ *(roundKey+w2+i);
+    // 1~10 round key
+    rd = 1;
+    while(rd<(ROUNDKEY_SIZE/KEY_SIZE)){
+        for(ko=0;ko<4;ko++){
+            // k16, k17, k18, k19, k32, ...
+            if(ko==0){
+                tforEx[0] = roundKey[16*rd-4];
+                tforEx[1] = roundKey[16*rd-3];
+                tforEx[2] = roundKey[16*rd-2];
+                tforEx[3] = roundKey[16*rd-1];
+                g_func(tforEx, rd);
+                roundKey[KEY_SIZE*rd+0] = roundKey[KEY_SIZE*(rd-1)+0]^tforEx[0];
+                roundKey[KEY_SIZE*rd+1] = roundKey[KEY_SIZE*(rd-1)+1]^tforEx[1];
+                roundKey[KEY_SIZE*rd+2] = roundKey[KEY_SIZE*(rd-1)+2]^tforEx[2];
+                roundKey[KEY_SIZE*rd+3] = roundKey[KEY_SIZE*(rd-1)+3]^tforEx[3];
+            }
+            // 
+            else{
+                roundKey[4*ko+16*rd+0] = roundKey[4*ko+16*(rd-1)+0]^roundKey[4*ko+16*rd-4];
+                roundKey[4*ko+16*rd+1] = roundKey[4*ko+16*(rd-1)+1]^roundKey[4*ko+16*rd-3];
+                roundKey[4*ko+16*rd+2] = roundKey[4*ko+16*(rd-1)+2]^roundKey[4*ko+16*rd-2];
+                roundKey[4*ko+16*rd+3] = roundKey[4*ko+16*(rd-1)+3]^roundKey[4*ko+16*rd-1];
+            }
         }
-        free(gfunc_output);
+//////////////////////////////////////////////////
+        printf("roundkey : %d\n", counts);
+        for(a=0;a<4;a++){
+            for(b=0;b<4;b++){
+                printf("%X ", roundKey[4*b+a+16*rd]);
+            }
+            printf("\n");
+        }
+        counts += 1;
+        rd = rd + 1;
     }
 }
 
@@ -268,18 +310,17 @@ BYTE* mixColumns(BYTE *block, int mode){
 
         case DEC:
             /* 추가 구현 */
-            for (q=0;q<4;q++)
-                {
-                    a = block[0+4*q];
-                    b = block[1+4*q];
-                    c = block[2+4*q];
-                    d = block[3+4*q];
+            for(q=0;q<4;q++){
+                a = block[0+4*q];
+                b = block[1+4*q];
+                c = block[2+4*q];
+                d = block[3+4*q];
 
-                    block[0+4*q] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
-                    block[1+4*q] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
-                    block[2+4*q] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
-                    block[3+4*q] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
-                }
+                block[0+4*q] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
+                block[1+4*q] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
+                block[2+4*q] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
+                block[3+4*q] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
+            }
             
             break;
 

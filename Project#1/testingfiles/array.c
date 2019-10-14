@@ -106,7 +106,7 @@ void expandKey(unsigned char *key, unsigned char *roundKey){
 }
 int main(){
     unsigned char block[16] = {0xD4, 0xBF, 0x5D, 0x30,
-                                 0xBF, 0x4C, 0x90, 0xEC,
+                                 0x93, 0x33, 0xFC, 0x82,
                                  0x5D, 0xE7, 0x4A, 0xC3,
                                  0x30, 0x8C, 0xD8, 0x95};
 
@@ -147,9 +147,39 @@ int main(){
 
     // original answer : 0x57 * 2 = 0xAE
     // original answer : 0xbf * 3 = 0xda
-    int i, j;
+    int i, j, c;
     int ct1, ct2, ct3;
     unsigned char arr[4];
+
+    int a, b;
+
+    for(i=0;i<4;i++){
+        for(j=0;j<4;j++){
+            printf("%X ", block[4*j+i]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+
+    for(c=0; c<16; c++){
+        a = block[c] / 16;
+        b = block[c] % 16;
+        block[c] = b_array[a][b];
+    }
+
+    for(i=0;i<4;i++){
+        for(j=0;j<4;j++){
+            printf("%X ", block[4*j+i]);
+        }
+        printf("\n");
+    }
+
+    // for(i=0;i<4;i++){
+    //     for(j=0;j<4;j++){
+    //         printf("%X ", block[4*j+i]);
+    //     }
+    //     printf("\n");
+    // }
 
     // for(ct1=0;ct1<4;ct1++){
     //     for(ct2=0;ct2<4;ct2++){
@@ -160,6 +190,13 @@ int main(){
     //     block[1+4*ct1] = arr[0] ^ dtime(arr[1]) ^ ttime(arr[2]) ^ arr[3];
     //     block[2+4*ct1] = arr[0] ^ arr[1] ^ dtime(arr[2]) ^ ttime(arr[3]);
     //     block[3+4*ct1] = ttime(arr[0]) ^ arr[1] ^ arr[2] ^ dtime(arr[3]);
+    // }
+
+    // for(i=0;i<4;i++){
+    //     for(j=0;j<4;j++){
+    //         printf("%X ", block[4*j+i]);
+    //     }
+    //     printf("\n");
     // }
 
 
